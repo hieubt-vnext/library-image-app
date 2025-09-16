@@ -452,13 +452,13 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       {/* Overlay Controls */}
       <div className={`absolute inset-0 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0"}`}>
         {/* Photo Info */}
-        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-black/50 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-white max-w-[calc(100%-1rem)] sm:max-w-none">
+        {/* <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-black/50 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-white max-w-[calc(100%-1rem)] sm:max-w-none">
           <h2 className="font-semibold text-sm sm:text-lg text-balance">{photo.title}</h2>
           <p className="text-xs sm:text-sm opacity-90 text-pretty hidden sm:block">{photo.description}</p>
-        </div>
+        </div> */}
 
         {/* Zoom Indicator */}
-        {isZoomed && (
+        {/* {isZoomed && (
           <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 bg-black/50 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-3 sm:py-2 text-white text-xs sm:text-sm">
             {zoomArea ? `Zoom vùng chọn: ${(zoomArea.zoomLevel * 100).toFixed(0)}%` : `Zoom: ${(zoomLevel * 100).toFixed(0)}%`}
             <div className="text-[10px] sm:text-xs opacity-75 mt-1">
@@ -466,17 +466,17 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
               <span className="sm:hidden">Chạm và kéo để di chuyển</span>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Instructions */}
-        {!isZoomed && (
+        {/* {!isZoomed && (
           <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 bg-black/50 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-3 sm:py-2 text-white text-xs sm:text-sm">
             <div className="text-[10px] sm:text-xs opacity-75">
               <span className="hidden sm:inline">• Click để zoom • Cuộn chuột để zoom • Kéo để di chuyển</span>
               <span className="sm:hidden">• Chạm để zoom • Pinch để zoom • Kéo để di chuyển</span>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   )
