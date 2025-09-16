@@ -34,34 +34,7 @@ const samplePhotos = [
     title: "Forest Path",
     description: "Sunlight filtering through dense forest canopy",
   },
-  {
-    id: 5,
-    src: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-    thumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    title: "Flower Garden",
-    description: "Vibrant blooms in a peaceful garden setting",
-  },
-  {
-    id: 6,
-    src: "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-    thumbnail: "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    title: "Desert Dunes",
-    description: "Golden sand dunes under a clear blue sky",
-  },
-  {
-    id: 7,
-    src: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-    thumbnail: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    title: "Aurora Borealis",
-    description: "Northern lights dancing across the Arctic sky",
-  },
-  {
-    id: 8,
-    src: "https://images.unsplash.com/photo-1464822759844-d150baec4b0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-    thumbnail: "https://images.unsplash.com/photo-1464822759844-d150baec4b0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    title: "Waterfall",
-    description: "Majestic waterfall cascading through rocky cliffs",
-  },
+
 ]
 
 export default function PhotoLibrary() {
@@ -95,7 +68,7 @@ export default function PhotoLibrary() {
       </div>
 
       {/* Photo Thumbnails - 20% of screen on desktop, 25% on mobile */}
-      <div className="h-1/4 sm:h-1/5 border-t border-border bg-card">
+      <div className="border-t border-border bg-card">
         <PhotoThumbnails
           photos={samplePhotos}
           selectedPhoto={selectedPhoto}

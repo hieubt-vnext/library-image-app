@@ -390,10 +390,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
               )}
             </div>
 
-            {/* Thumbnail Label */}
-            <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm text-white text-xs p-1 rounded-b-lg">
-              <p className="truncate text-center text-[10px] sm:text-xs">{photo.title}</p>
-            </div>
+           
           </div>
         ))}
       </div>
