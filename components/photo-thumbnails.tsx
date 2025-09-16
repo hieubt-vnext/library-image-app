@@ -332,20 +332,20 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                   <div
                     className="absolute pointer-events-none border-2 border-accent bg-accent/20  shadow-lg"
                     style={{
-                      width: `${magnifierState.zoomLevel <= 1 ? 112 : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
-                      height: `${magnifierState.zoomLevel <= 1 ? 112 : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
+                      width: `${magnifierState.zoomLevel <= 1 ? "100%" : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
+                      height: `${magnifierState.zoomLevel <= 1 ? "100%" : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
                       left: magnifierState.zoomLevel <= 1 ? 0 : Math.max(
                         0,
                         Math.min(
                           magnifierState.lensPosition.x - Math.max(10, 30 / magnifierState.zoomLevel),
-                          112 - Math.max(20, 60 / magnifierState.zoomLevel),
+                          (containerRef.current?.querySelector(`[data-photo-id="${photo.id}"] img`) as HTMLImageElement)?.offsetWidth - Math.max(20, 60 / magnifierState.zoomLevel) || 112 - Math.max(20, 60 / magnifierState.zoomLevel),
                         ),
                       ),
                       top: magnifierState.zoomLevel <= 1 ? 0 : Math.max(
                         0,
                         Math.min(
                           magnifierState.lensPosition.y - Math.max(10, 30 / magnifierState.zoomLevel),
-                          112 - Math.max(20, 60 / magnifierState.zoomLevel),
+                          (containerRef.current?.querySelector(`[data-photo-id="${photo.id}"] img`) as HTMLImageElement)?.offsetHeight - Math.max(20, 60 / magnifierState.zoomLevel) || 112 - Math.max(20, 60 / magnifierState.zoomLevel),
                         ),
                       ),
                       transition: "all 0.1s ease-out",
@@ -364,7 +364,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                     style={{
                       width: "120px",
                       height: "120px",
-                      left: magnifierState.lensPosition.x > 60 ? "-130px" : "120px",
+                      left: magnifierState.lensPosition.x > ((containerRef.current?.querySelector(`[data-photo-id="${photo.id}"] img`) as HTMLImageElement)?.offsetWidth || 112) / 2 ? "-130px" : "120px",
                       top: Math.max(-60, Math.min(magnifierState.lensPosition.y - 60, 20)),
                     }}
                   >
@@ -374,7 +374,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                       className="w-full h-full object-cover"
                       style={{
                         transform: `scale(${magnifierState.zoomLevel})`,
-                        transformOrigin: `${(magnifierState.lensPosition.x / 112) * 100}% ${(magnifierState.lensPosition.y / 112) * 100}%`,
+                        transformOrigin: `${(magnifierState.lensPosition.x / ((containerRef.current?.querySelector(`[data-photo-id="${photo.id}"] img`) as HTMLImageElement)?.offsetWidth || 112)) * 100}% ${(magnifierState.lensPosition.y / ((containerRef.current?.querySelector(`[data-photo-id="${photo.id}"] img`) as HTMLImageElement)?.offsetHeight || 112)) * 100}%`,
                       }}
                     />
 

@@ -37,8 +37,13 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
   const [hasMoved, setHasMoved] = useState(false)
   const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null)
   const [lastTouchCenter, setLastTouchCenter] = useState({ x: 0, y: 0 })
+  const [velocity, setVelocity] = useState({ x: 0, y: 0 })
+  const [lastMoveTime, setLastMoveTime] = useState(0)
+  const [lastMovePosition, setLastMovePosition] = useState({ x: 0, y: 0 })
+  const [isAnimating, setIsAnimating] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
+  const animationFrameRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (zoomArea) {
@@ -95,6 +100,52 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
     }
   }
 
+  const applyMomentum = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+    }
+
+    const momentum = () => {
+      const friction = 0.95 // Friction coefficient
+      const minVelocity = 0.01 // Minimum velocity to continue momentum
+      
+      if (Math.abs(velocity.x) < minVelocity && Math.abs(velocity.y) < minVelocity) {
+        setVelocity({ x: 0, y: 0 })
+        setIsAnimating(false)
+        return
+      }
+
+      const container = containerRef.current
+      if (container) {
+        const containerRect = container.getBoundingClientRect()
+        const deltaXPercent = (velocity.x / containerRect.width) * 100 * 10 // Scale factor
+        const deltaYPercent = (velocity.y / containerRect.height) * 100 * 10
+
+        const newPanX = panOffset.x + deltaXPercent
+        const newPanY = panOffset.y + deltaYPercent
+
+        // Apply constraints to prevent over-panning
+        const maxPan = 50 // Maximum pan percentage
+        const constrainedPanX = Math.max(-maxPan, Math.min(maxPan, newPanX))
+        const constrainedPanY = Math.max(-maxPan, Math.min(maxPan, newPanY))
+
+        setPanOffset({ x: constrainedPanX, y: constrainedPanY })
+        updateTransform(zoomLevel, constrainedPanX, constrainedPanY)
+      }
+
+      // Apply friction and continue momentum
+      setVelocity(prev => ({
+        x: prev.x * friction,
+        y: prev.y * friction
+      }))
+
+      animationFrameRef.current = requestAnimationFrame(momentum)
+    }
+
+    setIsAnimating(true)
+    animationFrameRef.current = requestAnimationFrame(momentum)
+  }, [velocity, panOffset, zoomLevel])
+
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? 0.9 : 1.1
@@ -111,41 +162,81 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       setIsDragging(true)
       setHasMoved(false)
       setDragStart({ x: e.clientX, y: e.clientY })
+      setVelocity({ x: 0, y: 0 })
+      setLastMoveTime(Date.now())
+      setLastMovePosition({ x: e.clientX, y: e.clientY })
+      
+      // Stop any ongoing momentum
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+      setIsAnimating(false)
     }
   }
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging && isZoomed) {
       e.preventDefault()
+      
+      const currentTime = Date.now()
       const deltaX = e.clientX - dragStart.x
       const deltaY = e.clientY - dragStart.y
       
       // Check if mouse has moved enough to consider it a drag
-      if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
         setHasMoved(true)
       }
+      
+      // Calculate velocity for momentum
+      if (lastMoveTime > 0) {
+        const timeDelta = currentTime - lastMoveTime
+        if (timeDelta > 0) {
+          const velocityX = (e.clientX - lastMovePosition.x) / timeDelta
+          const velocityY = (e.clientY - lastMovePosition.y) / timeDelta
+          setVelocity({ x: velocityX, y: velocityY })
+        }
+      }
+      
+      setLastMoveTime(currentTime)
+      setLastMovePosition({ x: e.clientX, y: e.clientY })
       
       const container = containerRef.current
       if (container) {
         const containerRect = container.getBoundingClientRect()
-        // Calculate movement as percentage of container size
-        const deltaXPercent = (deltaX / containerRect.width) * 100
-        const deltaYPercent = (deltaY / containerRect.height) * 100
+        // Calculate movement as percentage of container size with sensitivity multiplier
+        const sensitivity = 1.2 // Increase sensitivity for faster movement
+        const deltaXPercent = (deltaX / containerRect.width) * 100 * sensitivity
+        const deltaYPercent = (deltaY / containerRect.height) * 100 * sensitivity
         
         const newPanX = panOffset.x + deltaXPercent
         const newPanY = panOffset.y + deltaYPercent
         
-        setPanOffset({ x: newPanX, y: newPanY })
-        updateTransform(zoomLevel, newPanX, newPanY)
+        // Apply constraints to prevent over-panning
+        const maxPan = 50 // Maximum pan percentage
+        const constrainedPanX = Math.max(-maxPan, Math.min(maxPan, newPanX))
+        const constrainedPanY = Math.max(-maxPan, Math.min(maxPan, newPanY))
+        
+        setPanOffset({ x: constrainedPanX, y: constrainedPanY })
+        updateTransform(zoomLevel, constrainedPanX, constrainedPanY)
         setDragStart({ x: e.clientX, y: e.clientY })
       }
     }
-  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel])
+  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel, lastMoveTime, lastMovePosition])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
     setHasMoved(false)
-  }, [])
+    
+    // Apply momentum scrolling if velocity is significant
+    if (Math.abs(velocity.x) > 0.1 || Math.abs(velocity.y) > 0.1) {
+      applyMomentum()
+    }
+    
+    // Reset velocity
+    setVelocity({ x: 0, y: 0 })
+    setLastMoveTime(0)
+  }, [velocity, applyMomentum])
 
   // Touch handlers for mobile
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -158,6 +249,16 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         setIsDragging(true)
         setHasMoved(false)
         setDragStart({ x: touch.clientX, y: touch.clientY })
+        setVelocity({ x: 0, y: 0 })
+        setLastMoveTime(Date.now())
+        setLastMovePosition({ x: touch.clientX, y: touch.clientY })
+        
+        // Stop any ongoing momentum
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current)
+          animationFrameRef.current = null
+        }
+        setIsAnimating(false)
       }
     } else if (e.touches.length === 2) {
       // Two touches - pinch zoom
@@ -184,24 +285,44 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       // Single touch pan
       e.preventDefault()
       const touch = e.touches[0]
+      
+      const currentTime = Date.now()
       const deltaX = touch.clientX - dragStart.x
       const deltaY = touch.clientY - dragStart.y
       
-      if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
         setHasMoved(true)
       }
+      
+      // Calculate velocity for momentum
+      if (lastMoveTime > 0) {
+        const timeDelta = currentTime - lastMoveTime
+        if (timeDelta > 0) {
+          const velocityX = (touch.clientX - lastMovePosition.x) / timeDelta
+          const velocityY = (touch.clientY - lastMovePosition.y) / timeDelta
+          setVelocity({ x: velocityX, y: velocityY })
+        }
+      }
+      
+      setLastMoveTime(currentTime)
+      setLastMovePosition({ x: touch.clientX, y: touch.clientY })
       
       const container = containerRef.current
       if (container) {
         const containerRect = container.getBoundingClientRect()
-        const deltaXPercent = (deltaX / containerRect.width) * 100
-        const deltaYPercent = (deltaY / containerRect.height) * 100
+        const sensitivity = 1.2
+        const deltaXPercent = (deltaX / containerRect.width) * 100 * sensitivity
+        const deltaYPercent = (deltaY / containerRect.height) * 100 * sensitivity
         
         const newPanX = panOffset.x + deltaXPercent
         const newPanY = panOffset.y + deltaYPercent
         
-        setPanOffset({ x: newPanX, y: newPanY })
-        updateTransform(zoomLevel, newPanX, newPanY)
+        const maxPan = 50
+        const constrainedPanX = Math.max(-maxPan, Math.min(maxPan, newPanX))
+        const constrainedPanY = Math.max(-maxPan, Math.min(maxPan, newPanY))
+        
+        setPanOffset({ x: constrainedPanX, y: constrainedPanY })
+        updateTransform(zoomLevel, constrainedPanX, constrainedPanY)
         setDragStart({ x: touch.clientX, y: touch.clientY })
       }
     } else if (e.touches.length === 2) {
@@ -225,13 +346,22 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       
       setLastTouchDistance(distance)
     }
-  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel, lastTouchDistance])
+  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel, lastTouchDistance, lastMoveTime, lastMovePosition])
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false)
     setHasMoved(false)
     setLastTouchDistance(null)
-  }, [])
+    
+    // Apply momentum scrolling if velocity is significant
+    if (Math.abs(velocity.x) > 0.1 || Math.abs(velocity.y) > 0.1) {
+      applyMomentum()
+    }
+    
+    // Reset velocity
+    setVelocity({ x: 0, y: 0 })
+    setLastMoveTime(0)
+  }, [velocity, applyMomentum])
 
   useEffect(() => {
     if (isDragging) {
@@ -243,6 +373,15 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       }
     }
   }, [isDragging, handleMouseMove, handleMouseUp])
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+    }
+  }, [])
 
   // Notify parent component of state changes
   useEffect(() => {
@@ -273,9 +412,9 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         ref={imageRef}
         src={photo.src || "/placeholder.svg"}
         alt={photo.title}
-        className={`max-w-full max-h-full object-contain transition-transform duration-300 select-none ${
+        className={`max-w-full max-h-full object-contain select-none ${
           isZoomed ? "cursor-move" : "cursor-zoom-in"
-        }`}
+        } ${isDragging ? "" : "transition-transform duration-200 ease-out"}`}
         style={{
           transform: zoomTransform || (isZoomed && !zoomArea ? "scale(1.5)" : "scale(1)"),
           transformOrigin: "center",
