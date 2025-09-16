@@ -294,16 +294,16 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
   }
 
   return (
-    <div className="h-full p-2 sm:p-4">
+    <div className="h-full p-3 sm:p-4 min-h-[120px] sm:min-h-[140px] flex items-center">
       <div
         ref={containerRef}
-        className="flex gap-2 sm:gap-3 h-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-accent scrollbar-track-muted snap-x snap-mandatory"
+        className="flex gap-3 sm:gap-3 h-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-accent scrollbar-track-muted snap-x snap-mandatory items-center w-full"
       >
         {photos.map((photo) => (
           <div
             key={photo.id}
             data-photo-id={photo.id}
-            className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 snap-center ${
+            className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 snap-center p-1 ${
               selectedPhoto.id === photo.id
                 ? "ring-2 ring-accent ring-offset-1 sm:ring-offset-2 ring-offset-background"
                 : "hover:ring-2 hover:ring-primary hover:ring-offset-1 sm:hover:ring-offset-2 hover:ring-offset-background active:scale-95"
@@ -314,7 +314,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
               <img
                 src={photo.thumbnail || "/placeholder.svg"}
                 alt={photo.title}
-                className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 object-cover border border-border touch-none"
+                className="w-24 h-24 sm:w-24 sm:h-24 md:w-28 md:h-28 object-cover border border-border touch-none shadow-sm"
                 onMouseEnter={() => handleMouseEnter(photo.id)}
                 onMouseMove={(e) => handleMouseMove(e, photo.id)}
                 onMouseLeave={handleMouseLeave}
