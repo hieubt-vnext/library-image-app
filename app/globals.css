@@ -3,25 +3,149 @@
 @tailwind utilities;
 
 :root {
+  /* Updated color tokens to match photo library design brief */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #475569;
+  --card: #f1f5f9;
+  --card-foreground: #475569;
+  --popover: #ffffff;
+  --popover-foreground: #475569;
+  --primary: #059669;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #475569;
+  --muted: #ecfeff;
+  --muted-foreground: #475569;
+  --accent: #10b981;
+  --accent-foreground: #ffffff;
+  --destructive: #e53e3e;
+  --destructive-foreground: #ffffff;
+  --border: #d1d5db;
+  --input: #ffffff;
+  --ring: rgba(9, 150, 105, 0.5);
+  --chart-1: #ff6384;
+  --chart-2: #36a2eb;
+  --chart-3: #ffce56;
+  --chart-4: #4bc0c0;
+  --chart-5: #9966ff;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #475569;
+  --sidebar-primary: #059669;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #10b981;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #d1d5db;
+  --sidebar-ring: rgba(9, 150, 105, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.dark {
+  --background: #1f2937;
+  --foreground: #f9fafb;
+  --card: #374151;
+  --card-foreground: #f9fafb;
+  --popover: #1f2937;
+  --popover-foreground: #f9fafb;
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --secondary: #4b5563;
+  --secondary-foreground: #f9fafb;
+  --muted: #374151;
+  --muted-foreground: #9ca3af;
+  --accent: #059669;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #4b5563;
+  --input: #374151;
+  --ring: rgba(16, 185, 129, 0.5);
+  --sidebar: #1f2937;
+  --sidebar-foreground: #f9fafb;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #059669;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #4b5563;
+  --sidebar-ring: rgba(16, 185, 129, 0.3);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  color: var(--foreground);
+/* Added magnifier styles for the magnifying glass effect */
+.magnifier {
+  position: relative;
+  display: inline-block;
+}
+
+.magnifier-preview {
+  position: absolute;
+  border: 3px solid var(--accent);
+  border-radius: var(--radius);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.magnifier-preview.active {
+  opacity: 1;
+}
+
+.magnifier-lens {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.1);
+  pointer-events: none;
+  z-index: 999;
 }
