@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 
 interface Photo {
   id: number
@@ -18,27 +18,82 @@ interface PhotoThumbnailsProps {
   onZoomAreaChange: (
     zoomArea: { x: number; y: number; width: number; height: number; zoomLevel: number } | null,
   ) => void
+  viewerState?: {
+    isZoomed: boolean
+    zoomLevel: number
+    panOffset: { x: number; y: number }
+  }
 }
 
-export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAreaChange }: PhotoThumbnailsProps) {
+export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAreaChange, viewerState }: PhotoThumbnailsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [magnifierState, setMagnifierState] = useState<{
     isActive: boolean
     photoId: number | null
     lensPosition: { x: number; y: number }
     zoomLevel: number
+    lastDistance: number | null
+    lastZoomLevel: number | null
+    isUserInteracting: boolean
   }>({
     isActive: false,
     photoId: null,
     lensPosition: { x: 0, y: 0 },
     zoomLevel: 2,
+    lastDistance: null,
+    lastZoomLevel: null,
+    isUserInteracting: false,
   })
+
+  // Sync magnifier state with viewer state
+  useEffect(() => {
+    if (viewerState && viewerState.isZoomed && !magnifierState.isUserInteracting) {
+      setMagnifierState((prev) => ({
+        ...prev,
+        zoomLevel: viewerState.zoomLevel,
+        isActive: true,
+        photoId: selectedPhoto.id,
+      }))
+      
+      // Calculate lens position based on pan offset
+      const container = containerRef.current
+      if (container) {
+        const thumbnailElement = container.querySelector(`[data-photo-id="${selectedPhoto.id}"] img`) as HTMLImageElement
+        
+        if (thumbnailElement) {
+          const thumbnailRect = thumbnailElement.getBoundingClientRect()
+          
+          // Convert pan offset to lens position
+          // Pan offset is in percentage, we need to convert to pixel position
+          const lensX = (0.5 - viewerState.panOffset.x / 100) * thumbnailRect.width
+          const lensY = (0.5 - viewerState.panOffset.y / 100) * thumbnailRect.height
+          
+          // Ensure lens position is within bounds
+          const boundedX = Math.max(0, Math.min(thumbnailRect.width, lensX))
+          const boundedY = Math.max(0, Math.min(thumbnailRect.height, lensY))
+          
+          setMagnifierState((prev) => ({
+            ...prev,
+            lensPosition: { x: boundedX, y: boundedY },
+          }))
+        }
+      }
+    } else if (!viewerState?.isZoomed) {
+      setMagnifierState((prev) => ({
+        ...prev,
+        isActive: false,
+        photoId: null,
+        isUserInteracting: false,
+      }))
+    }
+  }, [viewerState, selectedPhoto.id, magnifierState.isUserInteracting])
 
   const handleMouseEnter = (photoId: number) => {
     setMagnifierState((prev) => ({
       ...prev,
       isActive: true,
       photoId,
+      isUserInteracting: true,
     }))
   }
 
@@ -74,6 +129,77 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
       ...prev,
       isActive: false,
       photoId: null,
+      isUserInteracting: false,
+    }))
+    onZoomAreaChange(null)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLImageElement>, photoId: number) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+
+    setMagnifierState((prev) => ({
+      ...prev,
+      isActive: true,
+      photoId,
+      lensPosition: { x, y },
+      isUserInteracting: true,
+    }))
+
+    if (photoId === selectedPhoto.id) {
+      const normalizedX = x / rect.width
+      const normalizedY = y / rect.height
+      const baseLensSize = 0.4
+      const lensSize = magnifierState.zoomLevel <= 1 ? 1 : Math.max(0.1, baseLensSize / magnifierState.zoomLevel)
+
+      onZoomAreaChange({
+        x: magnifierState.zoomLevel <= 1 ? 0 : Math.max(0, Math.min(1 - lensSize, normalizedX - lensSize / 2)),
+        y: magnifierState.zoomLevel <= 1 ? 0 : Math.max(0, Math.min(1 - lensSize, normalizedY - lensSize / 2)),
+        width: lensSize,
+        height: lensSize,
+        zoomLevel: magnifierState.zoomLevel,
+      })
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLImageElement>, photoId: number) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+
+    setMagnifierState((prev) => ({
+      ...prev,
+      lensPosition: { x, y },
+      photoId,
+    }))
+
+    if (photoId === selectedPhoto.id) {
+      const normalizedX = x / rect.width
+      const normalizedY = y / rect.height
+      const baseLensSize = 0.4
+      const lensSize = magnifierState.zoomLevel <= 1 ? 1 : Math.max(0.1, baseLensSize / magnifierState.zoomLevel)
+
+      onZoomAreaChange({
+        x: magnifierState.zoomLevel <= 1 ? 0 : Math.max(0, Math.min(1 - lensSize, normalizedX - lensSize / 2)),
+        y: magnifierState.zoomLevel <= 1 ? 0 : Math.max(0, Math.min(1 - lensSize, normalizedY - lensSize / 2)),
+        width: lensSize,
+        height: lensSize,
+        zoomLevel: magnifierState.zoomLevel,
+      })
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setMagnifierState((prev) => ({
+      ...prev,
+      isActive: false,
+      photoId: null,
+      isUserInteracting: false,
     }))
     onZoomAreaChange(null)
   }
@@ -84,6 +210,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
     setMagnifierState((prev) => ({
       ...prev,
       zoomLevel: newZoomLevel,
+      isUserInteracting: true,
     }))
 
     if (magnifierState.isActive && magnifierState.photoId === selectedPhoto.id) {
@@ -103,6 +230,69 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
     }
   }
 
+  const handleTouchZoom = (e: React.TouchEvent<HTMLImageElement>, photoId: number) => {
+    e.preventDefault()
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const rect = e.currentTarget.getBoundingClientRect()
+      
+      // Calculate distance between two touches
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      )
+      
+      // Calculate center point
+      const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left
+      const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top
+      
+      // Store initial distance and zoom level for pinch gesture
+      if (!magnifierState.lastDistance) {
+        setMagnifierState((prev) => ({
+          ...prev,
+          lastDistance: distance,
+          lastZoomLevel: magnifierState.zoomLevel,
+        }))
+        return
+      }
+      
+      // Calculate zoom change based on distance change
+      const distanceChange = distance - magnifierState.lastDistance
+      const zoomChange = distanceChange * 0.01
+      const newZoomLevel = Math.max(1, Math.min(5, (magnifierState.lastZoomLevel || magnifierState.zoomLevel) + zoomChange))
+      
+      setMagnifierState((prev) => ({
+        ...prev,
+        zoomLevel: newZoomLevel,
+        lensPosition: { x: centerX, y: centerY },
+        photoId,
+      }))
+
+      if (photoId === selectedPhoto.id) {
+        const normalizedX = centerX / rect.width
+        const normalizedY = centerY / rect.height
+        const baseLensSize = 0.4
+        const lensSize = newZoomLevel <= 1 ? 1 : Math.max(0.1, baseLensSize / newZoomLevel)
+
+        onZoomAreaChange({
+          x: newZoomLevel <= 1 ? 0 : Math.max(0, Math.min(1 - lensSize, normalizedX - lensSize / 2)),
+          y: newZoomLevel <= 1 ? 0 : Math.max(0, Math.min(1 - lensSize, normalizedY - lensSize / 2)),
+          width: lensSize,
+          height: lensSize,
+          zoomLevel: newZoomLevel,
+        })
+      }
+    } else {
+      // Reset pinch gesture state when only one touch
+      setMagnifierState((prev) => ({
+        ...prev,
+        lastDistance: null,
+        lastZoomLevel: null,
+      }))
+    }
+  }
+
   return (
     <div className="h-full p-4">
       <div
@@ -112,6 +302,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
         {photos.map((photo) => (
           <div
             key={photo.id}
+            data-photo-id={photo.id}
             className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 ${
               selectedPhoto.id === photo.id
                 ? "ring-2 ring-accent ring-offset-2 ring-offset-background"
@@ -128,6 +319,12 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                 onMouseMove={(e) => handleMouseMove(e, photo.id)}
                 onMouseLeave={handleMouseLeave}
                 onWheel={handleWheel}
+                onTouchStart={(e) => handleTouchStart(e, photo.id)}
+                onTouchMove={(e) => {
+                  handleTouchMove(e, photo.id)
+                  handleTouchZoom(e, photo.id)
+                }}
+                onTouchEnd={handleTouchEnd}
               />
 
               {magnifierState.isActive && magnifierState.photoId === photo.id && (
@@ -198,12 +395,14 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
         ))}
       </div>
 
-      {magnifierState.isActive && (
+      {/* {magnifierState.isActive && (
         <div className="absolute bottom-2 left-4 bg-black/80 text-white text-xs px-2 py-1 rounded">
-          Di chuột để chọn vùng • Cuộn để zoom • Hiện tại: {magnifierState.zoomLevel.toFixed(1)}x • Vùng chọn:{" "}
+          <span className="hidden sm:inline">Di chuột để chọn vùng • Cuộn để zoom • </span>
+          <span className="sm:hidden">Chạm để chọn vùng • Pinch để zoom • </span>
+          Hiện tại: {magnifierState.zoomLevel.toFixed(1)}x • Vùng chọn:{" "}
           {magnifierState.zoomLevel <= 1 ? 100 : Math.round((0.4 / magnifierState.zoomLevel) * 100)}%
         </div>
-      )}
+      )} */}
     </div>
   )
 }

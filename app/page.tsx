@@ -73,12 +73,25 @@ export default function PhotoLibrary() {
     height: number
     zoomLevel: number
   } | null>(null)
+  const [viewerState, setViewerState] = useState<{
+    isZoomed: boolean
+    zoomLevel: number
+    panOffset: { x: number; y: number }
+  }>({
+    isZoomed: false,
+    zoomLevel: 1,
+    panOffset: { x: 0, y: 0 },
+  })
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Photo Viewer - 80% of screen */}
       <div className="flex-1 h-4/5">
-        <PhotoViewer photo={selectedPhoto} zoomArea={zoomArea} />
+        <PhotoViewer 
+          photo={selectedPhoto} 
+          zoomArea={zoomArea} 
+          onViewerStateChange={setViewerState}
+        />
       </div>
 
       {/* Photo Thumbnails - 20% of screen */}
@@ -88,6 +101,7 @@ export default function PhotoLibrary() {
           selectedPhoto={selectedPhoto}
           onPhotoSelect={setSelectedPhoto}
           onZoomAreaChange={setZoomArea}
+          viewerState={viewerState}
         />
       </div>
     </div>
