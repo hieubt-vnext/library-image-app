@@ -330,7 +330,11 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
               {magnifierState.isActive && magnifierState.photoId === photo.id && (
                 <>
                   <div
-                    className="absolute pointer-events-none border-2 border-accent bg-accent/20  shadow-lg"
+                    className={`absolute pointer-events-none shadow-lg ${
+                      magnifierState.zoomLevel <= 1 
+                        ? "border-2 border-black bg-black/20" 
+                        : "border-2 border-accent bg-accent/20"
+                    }`}
                     style={{
                       width: `${magnifierState.zoomLevel <= 1 ? "100%" : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
                       height: `${magnifierState.zoomLevel <= 1 ? "100%" : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
@@ -349,12 +353,11 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                         ),
                       ),
                       transition: "all 0.1s ease-out",
-                      // boxShadow: "0 0 0 2px rgba(255,255,255,0.8), inset 0 0 0 1px rgba(0,0,0,0.3)",
                     }}
                   >
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-full h-0.5 bg-accent/60"></div>
-                      <div className="absolute w-0.5 h-full bg-accent/60"></div>
+                      <div className={`w-full h-0.5 ${magnifierState.zoomLevel <= 1 ? "bg-black/60" : "bg-accent/60"}`}></div>
+                      <div className={`absolute w-0.5 h-full ${magnifierState.zoomLevel <= 1 ? "bg-black/60" : "bg-accent/60"}`}></div>
                     </div>
                   </div>
 

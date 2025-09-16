@@ -93,8 +93,11 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
   }
 
   const updateTransform = (zoom: number, panX: number, panY: number) => {
-    if (zoom === 1) {
+    if (zoom === 1 && panX === 0 && panY === 0) {
       setZoomTransform("")
+    } else if (zoom === 1) {
+      // Allow panning even at 100% zoom
+      setZoomTransform(`translate(${panX}%, ${panY}%)`)
     } else {
       setZoomTransform(`scale(${zoom}) translate(${panX}%, ${panY}%)`)
     }
@@ -148,6 +151,7 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     const delta = e.deltaY > 0 ? 0.9 : 1.1
     const newZoomLevel = Math.max(0.5, Math.min(5, zoomLevel * delta))
     setZoomLevel(newZoomLevel)
@@ -156,27 +160,26 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
   }, [zoomLevel, panOffset])
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (isZoomed) {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragging(true)
-      setHasMoved(false)
-      setDragStart({ x: e.clientX, y: e.clientY })
-      setVelocity({ x: 0, y: 0 })
-      setLastMoveTime(Date.now())
-      setLastMovePosition({ x: e.clientX, y: e.clientY })
-      
-      // Stop any ongoing momentum
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-        animationFrameRef.current = null
-      }
-      setIsAnimating(false)
+    // Allow dragging at any zoom level
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+    setHasMoved(false)
+    setDragStart({ x: e.clientX, y: e.clientY })
+    setVelocity({ x: 0, y: 0 })
+    setLastMoveTime(Date.now())
+    setLastMovePosition({ x: e.clientX, y: e.clientY })
+    
+    // Stop any ongoing momentum
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
     }
+    setIsAnimating(false)
   }
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging && isZoomed) {
+    if (isDragging) {
       e.preventDefault()
       
       const currentTime = Date.now()
@@ -219,10 +222,16 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         
         setPanOffset({ x: constrainedPanX, y: constrainedPanY })
         updateTransform(zoomLevel, constrainedPanX, constrainedPanY)
+        
+        // Set isZoomed to true if there's any pan offset, even at 100% zoom
+        if (Math.abs(constrainedPanX) > 0.1 || Math.abs(constrainedPanY) > 0.1) {
+          setIsZoomed(true)
+        }
+        
         setDragStart({ x: e.clientX, y: e.clientY })
       }
     }
-  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel, lastMoveTime, lastMovePosition])
+  }, [isDragging, dragStart, panOffset, zoomLevel, lastMoveTime, lastMovePosition])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
@@ -236,30 +245,33 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
     // Reset velocity
     setVelocity({ x: 0, y: 0 })
     setLastMoveTime(0)
-  }, [velocity, applyMomentum])
+    
+    // Reset isZoomed if no pan offset and zoom level is 1
+    if (zoomLevel === 1 && Math.abs(panOffset.x) < 0.1 && Math.abs(panOffset.y) < 0.1) {
+      setIsZoomed(false)
+    }
+  }, [velocity, applyMomentum, zoomLevel, panOffset])
 
   // Touch handlers for mobile
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      // Single touch - pan
-      if (isZoomed) {
-        e.preventDefault()
-        e.stopPropagation()
-        const touch = e.touches[0]
-        setIsDragging(true)
-        setHasMoved(false)
-        setDragStart({ x: touch.clientX, y: touch.clientY })
-        setVelocity({ x: 0, y: 0 })
-        setLastMoveTime(Date.now())
-        setLastMovePosition({ x: touch.clientX, y: touch.clientY })
-        
-        // Stop any ongoing momentum
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current)
-          animationFrameRef.current = null
-        }
-        setIsAnimating(false)
+      // Single touch - pan (allow at any zoom level)
+      e.preventDefault()
+      e.stopPropagation()
+      const touch = e.touches[0]
+      setIsDragging(true)
+      setHasMoved(false)
+      setDragStart({ x: touch.clientX, y: touch.clientY })
+      setVelocity({ x: 0, y: 0 })
+      setLastMoveTime(Date.now())
+      setLastMovePosition({ x: touch.clientX, y: touch.clientY })
+      
+      // Stop any ongoing momentum
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
       }
+      setIsAnimating(false)
     } else if (e.touches.length === 2) {
       // Two touches - pinch zoom
       e.preventDefault()
@@ -278,11 +290,11 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       setLastTouchDistance(distance)
       setLastTouchCenter({ x: centerX, y: centerY })
     }
-  }, [isZoomed])
+  }, [])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 1 && isDragging && isZoomed) {
-      // Single touch pan
+    if (e.touches.length === 1 && isDragging) {
+      // Single touch pan (allow at any zoom level)
       e.preventDefault()
       const touch = e.touches[0]
       
@@ -323,6 +335,12 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         
         setPanOffset({ x: constrainedPanX, y: constrainedPanY })
         updateTransform(zoomLevel, constrainedPanX, constrainedPanY)
+        
+        // Set isZoomed to true if there's any pan offset, even at 100% zoom
+        if (Math.abs(constrainedPanX) > 0.1 || Math.abs(constrainedPanY) > 0.1) {
+          setIsZoomed(true)
+        }
+        
         setDragStart({ x: touch.clientX, y: touch.clientY })
       }
     } else if (e.touches.length === 2) {
@@ -346,7 +364,7 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
       
       setLastTouchDistance(distance)
     }
-  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel, lastTouchDistance, lastMoveTime, lastMovePosition])
+  }, [isDragging, dragStart, panOffset, zoomLevel, lastTouchDistance, lastMoveTime, lastMovePosition])
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false)
@@ -361,7 +379,12 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
     // Reset velocity
     setVelocity({ x: 0, y: 0 })
     setLastMoveTime(0)
-  }, [velocity, applyMomentum])
+    
+    // Reset isZoomed if no pan offset and zoom level is 1
+    if (zoomLevel === 1 && Math.abs(panOffset.x) < 0.1 && Math.abs(panOffset.y) < 0.1) {
+      setIsZoomed(false)
+    }
+  }, [velocity, applyMomentum, zoomLevel, panOffset])
 
   useEffect(() => {
     if (isDragging) {
@@ -413,7 +436,7 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         src={photo.src || "/placeholder.svg"}
         alt={photo.title}
         className={`max-w-full max-h-full object-contain select-none ${
-          isZoomed ? "cursor-move" : "cursor-zoom-in"
+          isDragging ? "cursor-move" : "cursor-zoom-in"
         } ${isDragging ? "" : "transition-transform duration-200 ease-out"}`}
         style={{
           transform: zoomTransform || (isZoomed && !zoomArea ? "scale(1.5)" : "scale(1)"),
@@ -422,6 +445,7 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         onClick={hasMoved ? undefined : toggleZoom}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
+        onWheel={handleWheel}
         draggable={false}
       />
 
