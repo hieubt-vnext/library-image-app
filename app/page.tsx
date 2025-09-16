@@ -85,8 +85,8 @@ export default function PhotoLibrary() {
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Photo Viewer - 80% of screen */}
-      <div className="flex-1 h-4/5">
+      {/* Photo Viewer - 80% of screen on desktop, 75% on mobile */}
+      <div className="flex-1 h-3/4 sm:h-4/5">
         <PhotoViewer 
           photo={selectedPhoto} 
           zoomArea={zoomArea} 
@@ -94,8 +94,8 @@ export default function PhotoLibrary() {
         />
       </div>
 
-      {/* Photo Thumbnails - 20% of screen */}
-      <div className="h-1/5 border-t border-border bg-card">
+      {/* Photo Thumbnails - 20% of screen on desktop, 25% on mobile */}
+      <div className="h-1/4 sm:h-1/5 border-t border-border bg-card">
         <PhotoThumbnails
           photos={samplePhotos}
           selectedPhoto={selectedPhoto}

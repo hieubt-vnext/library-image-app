@@ -35,6 +35,8 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
   const [zoomLevel, setZoomLevel] = useState(1)
   const [hasMoved, setHasMoved] = useState(false)
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null)
+  const [lastTouchCenter, setLastTouchCenter] = useState({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -145,6 +147,92 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
     setHasMoved(false)
   }, [])
 
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      // Single touch - pan
+      if (isZoomed) {
+        e.preventDefault()
+        e.stopPropagation()
+        const touch = e.touches[0]
+        setIsDragging(true)
+        setHasMoved(false)
+        setDragStart({ x: touch.clientX, y: touch.clientY })
+      }
+    } else if (e.touches.length === 2) {
+      // Two touches - pinch zoom
+      e.preventDefault()
+      e.stopPropagation()
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      )
+      
+      const centerX = (touch1.clientX + touch2.clientX) / 2
+      const centerY = (touch1.clientY + touch2.clientY) / 2
+      
+      setLastTouchDistance(distance)
+      setLastTouchCenter({ x: centerX, y: centerY })
+    }
+  }, [isZoomed])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging && isZoomed) {
+      // Single touch pan
+      e.preventDefault()
+      const touch = e.touches[0]
+      const deltaX = touch.clientX - dragStart.x
+      const deltaY = touch.clientY - dragStart.y
+      
+      if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+        setHasMoved(true)
+      }
+      
+      const container = containerRef.current
+      if (container) {
+        const containerRect = container.getBoundingClientRect()
+        const deltaXPercent = (deltaX / containerRect.width) * 100
+        const deltaYPercent = (deltaY / containerRect.height) * 100
+        
+        const newPanX = panOffset.x + deltaXPercent
+        const newPanY = panOffset.y + deltaYPercent
+        
+        setPanOffset({ x: newPanX, y: newPanY })
+        updateTransform(zoomLevel, newPanX, newPanY)
+        setDragStart({ x: touch.clientX, y: touch.clientY })
+      }
+    } else if (e.touches.length === 2) {
+      // Two touch pinch zoom
+      e.preventDefault()
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      )
+      
+      if (lastTouchDistance) {
+        const scale = distance / lastTouchDistance
+        const newZoomLevel = Math.max(0.5, Math.min(5, zoomLevel * scale))
+        setZoomLevel(newZoomLevel)
+        setIsZoomed(newZoomLevel > 1)
+        updateTransform(newZoomLevel, panOffset.x, panOffset.y)
+      }
+      
+      setLastTouchDistance(distance)
+    }
+  }, [isDragging, isZoomed, dragStart, panOffset, zoomLevel, lastTouchDistance])
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false)
+    setHasMoved(false)
+    setLastTouchDistance(null)
+  }, [])
+
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove)
@@ -171,11 +259,14 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-muted flex items-center justify-center overflow-hidden"
+      className="relative w-full h-full bg-muted flex items-center justify-center overflow-hidden touch-none select-none"
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Main Photo */}
       <img
@@ -191,32 +282,35 @@ export function PhotoViewer({ photo, zoomArea, onViewerStateChange }: PhotoViewe
         }}
         onClick={hasMoved ? undefined : toggleZoom}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         draggable={false}
       />
 
       {/* Overlay Controls */}
       <div className={`absolute inset-0 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0"}`}>
         {/* Photo Info */}
-        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-3 text-white">
-          <h2 className="font-semibold text-lg text-balance">{photo.title}</h2>
-          <p className="text-sm opacity-90 text-pretty">{photo.description}</p>
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-black/50 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-white max-w-[calc(100%-1rem)] sm:max-w-none">
+          <h2 className="font-semibold text-sm sm:text-lg text-balance">{photo.title}</h2>
+          <p className="text-xs sm:text-sm opacity-90 text-pretty hidden sm:block">{photo.description}</p>
         </div>
 
         {/* Zoom Indicator */}
         {isZoomed && (
-          <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm">
+          <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 bg-black/50 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-3 sm:py-2 text-white text-xs sm:text-sm">
             {zoomArea ? `Zoom vùng chọn: ${(zoomArea.zoomLevel * 100).toFixed(0)}%` : `Zoom: ${(zoomLevel * 100).toFixed(0)}%`}
-            <div className="text-xs opacity-75 mt-1">
-              Kéo để di chuyển ảnh
+            <div className="text-[10px] sm:text-xs opacity-75 mt-1">
+              <span className="hidden sm:inline">Kéo để di chuyển ảnh</span>
+              <span className="sm:hidden">Chạm và kéo để di chuyển</span>
             </div>
           </div>
         )}
 
         {/* Instructions */}
         {!isZoomed && (
-          <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm">
-            <div className="text-xs opacity-75">
-              • Click để zoom • Cuộn chuột để zoom • Kéo để di chuyển
+          <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 bg-black/50 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-3 sm:py-2 text-white text-xs sm:text-sm">
+            <div className="text-[10px] sm:text-xs opacity-75">
+              <span className="hidden sm:inline">• Click để zoom • Cuộn chuột để zoom • Kéo để di chuyển</span>
+              <span className="sm:hidden">• Chạm để zoom • Pinch để zoom • Kéo để di chuyển</span>
             </div>
           </div>
         )}

@@ -294,19 +294,19 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
   }
 
   return (
-    <div className="h-full p-4">
+    <div className="h-full p-2 sm:p-4">
       <div
         ref={containerRef}
-        className="flex gap-3 h-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-accent scrollbar-track-muted"
+        className="flex gap-2 sm:gap-3 h-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-accent scrollbar-track-muted snap-x snap-mandatory"
       >
         {photos.map((photo) => (
           <div
             key={photo.id}
             data-photo-id={photo.id}
-            className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 ${
+            className={`flex-shrink-0 relative cursor-pointer transition-all duration-200 snap-center ${
               selectedPhoto.id === photo.id
-                ? "ring-2 ring-accent ring-offset-2 ring-offset-background"
-                : "hover:ring-2 hover:ring-primary hover:ring-offset-2 hover:ring-offset-background"
+                ? "ring-2 ring-accent ring-offset-1 sm:ring-offset-2 ring-offset-background"
+                : "hover:ring-2 hover:ring-primary hover:ring-offset-1 sm:hover:ring-offset-2 hover:ring-offset-background active:scale-95"
             }`}
             onClick={() => onPhotoSelect(photo)}
           >
@@ -314,7 +314,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
               <img
                 src={photo.thumbnail || "/placeholder.svg"}
                 alt={photo.title}
-                className="w-24 h-24 sm:w-28 sm:h-28 object-cover border border-border"
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 object-cover border border-border touch-none"
                 onMouseEnter={() => handleMouseEnter(photo.id)}
                 onMouseMove={(e) => handleMouseMove(e, photo.id)}
                 onMouseLeave={handleMouseLeave}
@@ -360,7 +360,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
 
                   {/* Magnified Preview */}
                   <div
-                    className="absolute z-50 pointer-events-none border-2 border-accent rounded-lg overflow-hidden shadow-2xl bg-background"
+                    className="absolute z-50 pointer-events-none border-2 border-accent rounded-lg overflow-hidden shadow-2xl bg-background hidden sm:block"
                     style={{
                       width: "120px",
                       height: "120px",
@@ -389,7 +389,7 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
 
             {/* Thumbnail Label */}
             <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm text-white text-xs p-1 rounded-b-lg">
-              <p className="truncate text-center">{photo.title}</p>
+              <p className="truncate text-center text-[10px] sm:text-xs">{photo.title}</p>
             </div>
           </div>
         ))}
