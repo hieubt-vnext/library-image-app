@@ -332,8 +332,8 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                   <div
                     className={`absolute pointer-events-none shadow-lg ${
                       magnifierState.zoomLevel <= 1 
-                        ? "border-2 border-black bg-black/20" 
-                        : "border-2 border-accent bg-accent/20"
+                        ? "border-2 border-red-500 bg-red-500/20" 
+                        : "border-2 border-red-500 bg-red-500/20"
                     }`}
                     style={{
                       width: `${magnifierState.zoomLevel <= 1 ? "100%" : Math.max(20, 60 / magnifierState.zoomLevel)}px`,
@@ -355,15 +355,11 @@ export function PhotoThumbnails({ photos, selectedPhoto, onPhotoSelect, onZoomAr
                       transition: "all 0.1s ease-out",
                     }}
                   >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className={`w-full h-0.5 ${magnifierState.zoomLevel <= 1 ? "bg-black/60" : "bg-accent/60"}`}></div>
-                      <div className={`absolute w-0.5 h-full ${magnifierState.zoomLevel <= 1 ? "bg-black/60" : "bg-accent/60"}`}></div>
-                    </div>
                   </div>
 
                   {/* Magnified Preview */}
                   <div
-                    className="absolute z-50 pointer-events-none border-2 border-accent rounded-lg overflow-hidden shadow-2xl bg-background hidden sm:block"
+                    className="absolute z-50 pointer-events-none border-2 border-red-500 rounded-lg overflow-hidden shadow-2xl bg-background hidden sm:block"
                     style={{
                       width: "120px",
                       height: "120px",
